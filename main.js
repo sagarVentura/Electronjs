@@ -1,6 +1,9 @@
-const { app, BrowserWindow, dialog, net } = require('electron');
+
+const { app, BrowserWindow, dialog, net,ipcMain } = require('electron');
 const path = require('path');
 const { getDiskInfoSync } = require('node-disk-info');
+const { exec } = require('child_process');
+const os = require('os');
 
 // Enable hot reload during development (optional)
 try {
@@ -46,6 +49,48 @@ function getAllowedSerials() {
   });
 }
 
+function getUSBSerials() {
+  const platform = process.platform;
+
+  return new Promise((resolve, reject) => {
+    if (platform === 'win32') {
+      exec(`wmic diskdrive where "InterfaceType='USB'" get SerialNumber`, (err, stdout) => {
+        if (err) return reject(err);
+
+        const lines = stdout.split('\n').map(line => line.trim()).filter(Boolean);
+        const serials = lines.slice(1).filter(Boolean); // Remove header
+        resolve(serials);
+      });
+
+    } else if (platform === 'linux') {
+      exec(`lsusb -v 2>/dev/null | grep -i "iSerial"`, (err, stdout) => {
+        if (err) return reject(err);
+
+        const serials = stdout
+          .split('\n')
+          .map(line => line.trim().split(/\s+/).slice(2).join(' '))
+          .filter(Boolean);
+        resolve(serials);
+      });
+
+    } else if (platform === 'darwin') {
+      exec(`system_profiler SPUSBDataType | grep -i "Serial Number"`, (err, stdout) => {
+        if (err) return reject(err);
+
+        const serials = stdout
+          .split('\n')
+          .map(line => line.split(':').pop().trim())
+          .filter(Boolean);
+        resolve(serials);
+      });
+
+    } else {
+      reject(new Error(`Unsupported platform: ${platform}`));
+    }
+  });
+}
+
+
 // Create the main window
 function createWindow() {
   const win = new BrowserWindow({
@@ -58,10 +103,23 @@ function createWindow() {
     }
   });
 
+
   // Disable right-click
   win.webContents.on('context-menu', (e) => e.preventDefault());
 
   win.webContents.openDevTools(); // Opens DevTools automatically
+
+  ipcMain.handle('get-usb-info', () => {
+    const devices = usb.getDeviceList();
+    return devices.map(device => {
+      const desc = device.deviceDescriptor;
+      return {
+        vendorId: desc.idVendor,
+        productId: desc.idProduct,
+        serialNumberIndex: desc.iSerialNumber  // Note: not the actual serial string
+      };
+    });
+  });
 
   // Block copy, print, save
   win.webContents.on('before-input-event', (event, input) => {
@@ -76,30 +134,19 @@ function createWindow() {
 
 app.whenReady().then(async () => {
   // Step 1: Get the drive where the app is running
-  const appPath = app.getAppPath();        // e.g. D:\MyApp\resources\app.asar
-  console.log("appPath", appPath);
-  const appDrive = appPath.substring(0, 3); // e.g. D:\
 
-  // Step 2: Get USB serial number (disabled for now, uncomment if needed)
-  // let localSerial = null;
-  // try {
-  //   const disks = getDiskInfoSync();
-  //   console.log("disks", disks);
-  //   const currentDisk = disks.find(disk => disk.mounted.toUpperCase() === appDrive.toUpperCase());
-  //   if (currentDisk) {
-  //     localSerial = currentDisk.serial;
-  //   }
-  // } catch (err) {
-  //   console.error("Disk check failed:", err);
-  // }
+ let result= await getUSBSerials();
 
-  // if (!localSerial) {
-  //   dialog.showErrorBox("Access Denied", "Could not verify USB drive.");
-  //   app.quit();
-  //   return;
-  // }
+ console.log("result",result)
 
-  // Step 3: Fetch allowed serials from server using `net`
+
+  if (!result.length) {
+    dialog.showErrorBox("Access Denied", "Could not verify USB drive.");
+    app.quit();
+    return;
+  }
+
+  // Step 3: Fetch allowed serials from server using `net
   let allowedSerials = [];
   try {
     allowedSerials = await getAllowedSerials();
@@ -112,12 +159,16 @@ app.whenReady().then(async () => {
   }
 
   // Step 4: Verify serial (disabled for now)
-  // if (!allowedSerials.includes(localSerial.toUpperCase())) {
-  //   dialog.showErrorBox("Unauthorized USB", "This device is not authorized to run this app.");
-  //   app.quit();
-  //   return;
-  // }
+       
+let varify= result.some((serialNumber)=>{return allowedSerials.includes(serialNumber)});
+console.log("varify",varify,allowedSerials)
+  if (!varify) {
+    dialog.showErrorBox("Unauthorized USB", "This device is not authorized to run this app.");
+    app.quit();
+    return;
+  }
 
   // Step 5: Launch app
   createWindow();
 });
+
