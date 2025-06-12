@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Welcome</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        background: #f2f2f2;
+      }
+      h1 {
+        font-size: 2em;
+      }
+      button {
+        padding: 10px 20px;
+        font-size: 1.2em;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      button:hover {
+        background-color: #0056b3;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Welcome to Vendtura</h1>
+    <p>Access the training or learning materials securely via this application.</p>
+    <button onclick="openViewer()">Open PDF Content</button>
+
+    <script>
+      const { shell } = require('electron');
+      function openViewer() {
+        window.location = "viewer.html";
+      }
+    </script>
+  </body>
+</html>
