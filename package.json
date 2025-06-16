@@ -8,9 +8,10 @@
     },
     "build": {
         "appId": "com.yourorg.scormviewer",
-        "productName": "SCORM Viewer",
+        "productName": "Ventura App",
         "directories": {
-            "output": "dist"
+            "output": "dist",
+            "buildResources": "build"
         },
         "files": [
             "**/*",
@@ -19,8 +20,15 @@
             "!**/*.map"
         ],
         "win": {
-            "target": "portable"
-        }
+            "target": "portable",
+            "icon": "build/icon.ico"
+        },
+          "mac": {
+            "icon": "build/icon.icns"
+          },
+          "linux": {
+            "icon": "build/icon.png"
+          }
     },
     "devDependencies": {
         "electron": "^25.0.0",
