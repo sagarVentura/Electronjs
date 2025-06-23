@@ -1,9 +1,21 @@
 
 const { app, BrowserWindow, dialog, net, ipcMain } = require('electron');
 const path = require('path');
-const { getDiskInfoSync } = require('node-disk-info');
 const { exec } = require('child_process');
-const os = require('os');
+const fs = require('fs');
+const crypto = require('crypto');
+
+const key = crypto.scryptSync('your-secret-password', 'some-salt', 32);
+/* live testing*/
+//const decryptedPath = path.join(app.getPath('temp'), 'decrypted-scorm');
+
+/*local  testing*/
+const decryptedPath = path.join(__dirname, 'decryptedFolder');
+
+const encryptedPath = path.join(__dirname, 'encryptFolder');
+
+
+
 
 // Enable hot reload during development (optional)
 try {
@@ -119,7 +131,9 @@ function createWindow() {
     webPreferences: {
       contextIsolation: true,
       sandbox: true,
-      devTools: false,
+      devTools: true,
+      preload: path.join(__dirname, 'preload.js'), // ✅ Make sure this path is correct
+
     }
   });
 
@@ -127,7 +141,7 @@ function createWindow() {
   // Disable right-click
   win.webContents.on('context-menu', (e) => e.preventDefault());
 
-  win.webContents.openDevTools(); // Opens DevTools automatically
+  win.webContents.openDevTools(); // ✅ Enable browser console
 
   ipcMain.handle('get-usb-info', () => {
     const devices = usb.getDeviceList();
@@ -140,6 +154,61 @@ function createWindow() {
       };
     });
   });
+
+  ipcMain.handle('get-scorm-courses', () => {
+    const folders = fs.readdirSync(encryptedPath);
+    console.log("folders",folders)
+    folders.filter(folder => {
+      const fullPath = path.join(encryptedPath, folder);
+      return fs.statSync(fullPath).isDirectory() &&
+             fs.existsSync(path.join(fullPath, 'index.html'));
+    });
+
+    /*We Create array of folder available*/
+    return folders.map(folder => ({
+      name: folder,
+      path: path.join(encryptedPath)
+    }));
+  });
+
+  /*Decrypt specific course when user click on it*/
+  ipcMain.handle('decrypt-course', async (event, encryptedPath, courseName) => {
+    const courseEncryptedDir = path.join(encryptedPath, courseName);
+    const courseDecryptedDir = path.join(decryptedPath, courseName);
+  
+    try {
+      //  if decrypt folder is exist then use it, otherwise create new decrypt folder
+      if (!fs.existsSync(courseDecryptedDir)) {
+        decryptFolderRecursive(courseEncryptedDir, courseDecryptedDir);
+
+        /* it is use to remove folder*/
+       // fs.rmSync(courseDecryptedDir, { recursive: true, force: true });
+      }
+  
+  
+      return courseDecryptedDir; // send back the path to use
+    } catch (err) {
+      console.error("Decryption failed:", err);
+      throw err;
+    }
+  });
+
+  ipcMain.on('open-scorm', (event, coursePath) => {
+    console.log("coursePath",coursePath)
+    const scormWin = new BrowserWindow({
+      width: 1200,
+      height: 800,
+      webPreferences: {
+        contextIsolation: true,
+        sandbox: true,
+        preload: path.join(__dirname, 'preload.js')  // ✅ link preload
+
+      }
+    });
+  
+    scormWin.loadFile(path.join(coursePath, 'story.html'));
+  });
+  
 
   // Block copy, print, save
   win.webContents.on('before-input-event', (event, input) => {
@@ -155,9 +224,24 @@ function createWindow() {
 app.whenReady().then(async () => {
   // Step 1: Get the drive where the app is running
 
+  const encryptedPath = path.join(__dirname, 'scormcontent/');
+ // const decryptedPath = path.join(__dirname, 'decryptedFolder');
+
+  console.log("decryptedPath",decryptedPath,"encryptedPath",encryptedPath)
+
+try {
+  fs.rmSync(decryptedPath, { recursive: true, force: true });
+ decryptFolderRecursive(encryptedPath, decryptedPath);
+} catch (err) {
+  console.log("Decryption failed:", err);
+  dialog.showErrorBox("Error", "Failed to decrypt SCORM content.");
+  app.quit();
+  return;
+}
+
   let result = await getUSBSerials();
 
-  console.log("result", result)
+  // console.log("result", result)
 
 
   if (!result.length) {
@@ -180,7 +264,7 @@ app.whenReady().then(async () => {
   // Step 4: on the bases of allowedSerials check whether user can allow to view content or quit app
   console.log("varify", allowedSerials);
 
-  if (!allowedSerials?.valid) {
+  if (allowedSerials?.valid) {
     dialog.showErrorBox("Fail to varify", allowedSerials?.message??"");
     app.quit();
     return;
@@ -192,9 +276,82 @@ app.whenReady().then(async () => {
   console.log("err",err)
 });
 
+/* On app Quit by user */
+app.on('will-quit', cleanDecryptedFolder);
+
+/*On app crash or unexpected error occurs*/
+process.on('exit', cleanDecryptedFolder);
+
+function cleanDecryptedFolder() {
+  try {
+    if (fs.existsSync(decryptedPath)) {
+      fs.rmSync(decryptedPath, { recursive: true, force: true });
+      console.log("🧹 Decrypted folder deleted.");
+    }
+  } catch (err) {
+    console.error("❌ Failed to clean decrypted folder:", err);
+  }
+}
+
+
+
+
+
 
 /*
 Icons build command
 
 npx electron-icon-maker --input=Asset/icon.png --output=Asset/icons
 */
+
+
+function decryptFile(inputPath, outputPath) {
+  const data = fs.readFileSync(inputPath);
+  
+  if (data.length <= 16) {
+    throw new Error('Invalid encrypted file: too short');
+  }
+
+  const iv = data.slice(0, 16);
+  const encrypted = data.slice(16);
+
+  const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+
+  let decrypted;
+  try {
+    decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]);
+  } catch (err) {
+    throw new Error(`Decryption failed for ${inputPath}: ${err.message}`);
+  }
+
+  console.log("outputPath",outputPath)
+  fs.writeFileSync(outputPath, decrypted);
+}
+
+
+function decryptFolderRecursive(encryptedDir, targetDir) {
+  fs.mkdirSync(targetDir, { recursive: true });
+
+  const items = fs.readdirSync(encryptedDir);
+  for (const item of items) {
+    const encPath = path.join(encryptedDir, item);
+    const stat = fs.statSync(encPath);
+
+    if (stat.isDirectory()) {
+      // Recurse into subdirectory and preserve folder structure
+      const newTargetDir = path.join(targetDir, item);
+      decryptFolderRecursive(encPath,newTargetDir );
+    } else if (stat.isFile() && path.extname(item) === '.enc') {
+      // Remove .enc extension for output file
+      const baseName = path.basename(item, '.enc');
+      const outputPath = path.join(targetDir, baseName);
+
+      try {
+        decryptFile(encPath, outputPath);
+      } catch (err) {
+        console.error(`❌ Failed to decrypt ${encPath}: ${err.message}`);
+      }
+    }
+  }
+}
+

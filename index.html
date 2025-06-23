@@ -1,55 +1,46 @@
+
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="UTF-8" />
-    <title>Welcome</title>
-    <style>
-      .bodyContent {
-        margin: 0;
-        padding: 0;
-        font-family: sans-serif;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        height: 80vh;
-        /* background: #f2f2f2; */
-      }
+<head>
+  <title>SCORM Launcher</title>
+  <style>
+    .card {
+      padding: 20px;
+      margin: 10px;
+      border: 1px solid #ccc;
+      cursor: pointer;
+      background: #f9f9f9;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Available Courses</h1>
+  <div id="cardContainer"></div>
 
-      img.logo {
-        height: 60px;
-        margin-bottom: 20px;
-      }
-      h1 {
-        font-size: 2em;
-      }
-      button {
-        padding: 10px 20px;
-        font-size: 1.2em;
-        background-color: #007bff;
-        color: white;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-      }
-      button:hover {
-        background-color: #0056b3;
-      }
-    </style>
-  </head>
-  <body>
-    <img src="Asset/logo.png" alt="Company Logo" class="logo" />
- <div class="bodyContent">
-    <h1>Welcome to Ventura</h1>
-    <p>Access the training or learning materials securely via this application.</p>
-    <button onclick="openViewer()">Open Scorm Content</button>
-  </div>
+   <script>
+    window.addEventListener('DOMContentLoaded', async () => {
+      try{
+     const courses = await window.scormAPI.getCourses();
+      const container = document.getElementById('cardContainer');
+      console.log("call goes",courses)
 
-    <script>
-      const { shell } = require('electron');
-      function openViewer() {
-        window.location = "viewer.html";
-      }
-    </script>
-  </body>
+      courses.forEach(course => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.textContent = course.name;
+        card.onclick = () => window.scormAPI.openScorm(course.path);
+        container.appendChild(card);
+      });
+      
+    }
+  catch(err){
+    console.log("print Error",err)
+
+  }
+}
+  );
+  </script>
+
+</body>
 </html>

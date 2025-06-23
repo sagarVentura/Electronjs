@@ -2,5 +2,6 @@ node_modules
 /.pnp
 .pnp.js
 dist
-scormcontent
+scormcontent/*
 Archive.zip
+encrytFolder/*
