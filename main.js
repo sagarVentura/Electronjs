@@ -1,18 +1,25 @@
 
 const { app, BrowserWindow, dialog, net, ipcMain } = require('electron');
 const path = require('path');
-const { exec } = require('child_process');
+const { exec, execSync } = require('child_process');
 const fs = require('fs');
 const crypto = require('crypto');
+const os = require('os');
+
+
 
 const key = crypto.scryptSync('your-secret-password', 'some-salt', 32);
 /* live testing*/
-//const decryptedPath = path.join(app.getPath('temp'), 'decrypted-scorm');
+const decryptedPath = path.join(app.getPath('temp'), 'decrypted-scorm');
+let encryptedPath = null;
+
 
 /*local  testing*/
-const decryptedPath = path.join(__dirname, 'decryptedFolder');
+//const decryptedPath = path.join(__dirname, 'decryptedFolder');
 
-const encryptedPath = path.join(__dirname, 'encryptFolder');
+//const encryptedPath = path.join(__dirname, '../encryptFolder');
+
+console.log("__dirname", decryptedPath)
 
 
 
@@ -27,8 +34,8 @@ try {
 }
 
 
-   // Function to get allowed serial numbers from server using `net` and POST
-function getAllowedSerials({serialNumber}) {
+// Function to get allowed serial numbers from server using `net` and POST
+function getAllowedSerials({ serialNumber }) {
   return new Promise((resolve, reject) => {
     const request = net.request({
       method: 'POST',
@@ -45,15 +52,15 @@ function getAllowedSerials({serialNumber}) {
     //   port: 3300,                // ✅ Port must be passed separately
     //   path: '/api/organisation/serialnumber',
     // });
-    
+
 
     // Optional: Add request body
-   
-    const postData = JSON.stringify({serialNumber});
+
+    const postData = JSON.stringify({ serialNumber });
     request.setHeader('Content-Type', 'application/json');
 
 
-   
+
     let body = '';
 
     request.on('response', (response) => {
@@ -141,6 +148,7 @@ function createWindow() {
   // Disable right-click
   win.webContents.on('context-menu', (e) => e.preventDefault());
 
+  /*ovpen development tool*/
   win.webContents.openDevTools(); // ✅ Enable browser console
 
   ipcMain.handle('get-usb-info', () => {
@@ -156,13 +164,16 @@ function createWindow() {
   });
 
   ipcMain.handle('get-scorm-courses', () => {
-    const folders = fs.readdirSync(encryptedPath);
-    console.log("folders",folders)
-    folders.filter(folder => {
+    let folders = fs.readdirSync(encryptedPath);
+    folders = folders.filter(folder => {
+      /* item is not folder then not include it because in  encryptedPath their .DS_Store file present*/
+
       const fullPath = path.join(encryptedPath, folder);
-      return fs.statSync(fullPath).isDirectory() &&
-             fs.existsSync(path.join(fullPath, 'index.html'));
+      return fs.statSync(fullPath).isDirectory()
+
     });
+
+    console.log("folders", folders)
 
     /*We Create array of folder available*/
     return folders.map(folder => ({
@@ -172,21 +183,21 @@ function createWindow() {
   });
 
   /*Decrypt specific course when user click on it*/
-  ipcMain.handle('decrypt-course', async (event, encryptedPath, courseName) => {
+  ipcMain.handle('decrypt-course', async (event, courseName) => {
     const courseEncryptedDir = path.join(encryptedPath, courseName);
     const courseDecryptedDir = path.join(decryptedPath, courseName);
-  
+    console.log("call", courseName)
     try {
       //  if decrypt folder is exist then use it, otherwise create new decrypt folder
       if (!fs.existsSync(courseDecryptedDir)) {
         decryptFolderRecursive(courseEncryptedDir, courseDecryptedDir);
-
         /* it is use to remove folder*/
-       // fs.rmSync(courseDecryptedDir, { recursive: true, force: true });
+        // fs.rmSync(courseDecryptedDir, { recursive: true, force: true });
       }
-  
-  
-      return courseDecryptedDir; // send back the path to use
+
+
+      return courseDecryptedDir;
+
     } catch (err) {
       console.error("Decryption failed:", err);
       throw err;
@@ -194,7 +205,7 @@ function createWindow() {
   });
 
   ipcMain.on('open-scorm', (event, coursePath) => {
-    console.log("coursePath",coursePath)
+    console.log("coursePath", coursePath)
     const scormWin = new BrowserWindow({
       width: 1200,
       height: 800,
@@ -205,10 +216,10 @@ function createWindow() {
 
       }
     });
-  
+
     scormWin.loadFile(path.join(coursePath, 'story.html'));
   });
-  
+
 
   // Block copy, print, save
   win.webContents.on('before-input-event', (event, input) => {
@@ -222,34 +233,33 @@ function createWindow() {
 }
 
 app.whenReady().then(async () => {
-  // Step 1: Get the drive where the app is running
+    const usbPath = findUSBDrivePath();
+    if (!usbPath) {
+      console.log("No USB drive detected.");
+    } else {
+      console.log("USB drive path:", usbPath);
+      /*we updated global variable  encryptedPath*/
+      encryptedPath = path.join(usbPath, 'Rieter/encryptFolder');
+      /*check is path is exsit or not*/
+      if(!fs.existsSync(encryptedPath)){
+        dialog.showErrorBox("Fail to varify content path","please connect with admin");
+        app.quit();
 
-  const encryptedPath = path.join(__dirname, 'scormcontent/');
- // const decryptedPath = path.join(__dirname, 'decryptedFolder');
+      }
+      console.log("Encrypted folder:", encryptedPath);
+    }
+  
+  
 
-  console.log("decryptedPath",decryptedPath,"encryptedPath",encryptedPath)
 
-try {
-  fs.rmSync(decryptedPath, { recursive: true, force: true });
- decryptFolderRecursive(encryptedPath, decryptedPath);
-} catch (err) {
-  console.log("Decryption failed:", err);
-  dialog.showErrorBox("Error", "Failed to decrypt SCORM content.");
-  app.quit();
-  return;
-}
 
+  // Step 2: get serial number list of all available pen Drive
   let result = await getUSBSerials();
-
-  // console.log("result", result)
-
-
   if (!result.length) {
     dialog.showErrorBox("Access Denied", "Could not verify USB drive.");
     app.quit();
     return;
   }
-
   // Step 3: send serial number to server to check is it is valide and  not expire pendrive by  `net
   let allowedSerials = {};
   try {
@@ -257,23 +267,21 @@ try {
   } catch (err) {
     console.log("err", err);
     dialog.showErrorBox("Network Error", "Failed to verify license. Please connect to the internet.");
-     app.quit();
+    app.quit();
     return;
   }
 
   // Step 4: on the bases of allowedSerials check whether user can allow to view content or quit app
-  console.log("varify", allowedSerials);
-
-  if (allowedSerials?.valid) {
-    dialog.showErrorBox("Fail to varify", allowedSerials?.message??"");
+  if (!allowedSerials?.valid) {
+    dialog.showErrorBox("Fail to varify", allowedSerials?.message ?? "");
     app.quit();
     return;
   }
 
   // Step 5: Launch app
   createWindow();
-}).catch((err)=>{
-  console.log("err",err)
+}).catch((err) => {
+  console.log("err", err)
 });
 
 /* On app Quit by user */
@@ -307,7 +315,7 @@ npx electron-icon-maker --input=Asset/icon.png --output=Asset/icons
 
 function decryptFile(inputPath, outputPath) {
   const data = fs.readFileSync(inputPath);
-  
+
   if (data.length <= 16) {
     throw new Error('Invalid encrypted file: too short');
   }
@@ -324,7 +332,7 @@ function decryptFile(inputPath, outputPath) {
     throw new Error(`Decryption failed for ${inputPath}: ${err.message}`);
   }
 
-  console.log("outputPath",outputPath)
+  console.log("outputPath", outputPath)
   fs.writeFileSync(outputPath, decrypted);
 }
 
@@ -340,7 +348,7 @@ function decryptFolderRecursive(encryptedDir, targetDir) {
     if (stat.isDirectory()) {
       // Recurse into subdirectory and preserve folder structure
       const newTargetDir = path.join(targetDir, item);
-      decryptFolderRecursive(encPath,newTargetDir );
+      decryptFolderRecursive(encPath, newTargetDir);
     } else if (stat.isFile() && path.extname(item) === '.enc') {
       // Remove .enc extension for output file
       const baseName = path.basename(item, '.enc');
@@ -353,5 +361,54 @@ function decryptFolderRecursive(encryptedDir, targetDir) {
       }
     }
   }
+}
+
+
+
+function findUSBDrivePath() {
+  const platform = os.platform();
+
+  try {
+    if (platform === 'darwin') {
+      // macOS: USB drives are mounted under /Volumes
+      const volumes = fs.readdirSync('/Volumes');
+      for (const name of volumes) {
+        if (name !== 'Macintosh HD') {
+          const fullPath = path.join('/Volumes', name);
+          if (fs.existsSync(fullPath)) {
+            return fullPath;
+          }
+        }
+      }
+    }
+
+    if (platform === 'win32') {
+      // Windows: DriveType=2 is removable drive
+      const output = execSync(`wmic logicaldisk where "drivetype=2" get deviceid`, { encoding: 'utf8' });
+      const lines = output.split('\n').map(line => line.trim()).filter(Boolean);
+      const deviceIds = lines.filter(line => /^[A-Z]:/.test(line));
+      if (deviceIds.length > 0) {
+        return deviceIds[0] + '\\'; // Return first removable drive (e.g. "E:\\")
+      }
+    }
+
+    if (platform === 'linux') {
+      // Linux: USB drives are often mounted under /media or /mnt
+      const baseDirs = ['/media', '/mnt', '/run/media'];
+      for (const base of baseDirs) {
+        if (fs.existsSync(base)) {
+          const entries = fs.readdirSync(base);
+          if (entries.length) {
+            return path.join(base, entries[0]); // e.g., /media/username/USB_DRIVE
+          }
+        }
+      }
+    }
+
+  } catch (err) {
+    console.error("Error finding USB path:", err);
+  }
+
+  return null; // USB not found
 }
 

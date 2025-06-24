@@ -23,14 +23,23 @@
       try{
      const courses = await window.scormAPI.getCourses();
       const container = document.getElementById('cardContainer');
-      console.log("call goes",courses)
+      console.log("call goes",courses.length)
 
       courses.forEach(course => {
+        console.log("Course",course)
+
         const card = document.createElement('div');
         card.className = 'card';
         card.textContent = course.name;
-        card.onclick = () => window.scormAPI.openScorm(course.path);
+        card.onclick = async () => {
+         let path= await window.scormAPI.decryptScorm(course.name);
+           window.scormAPI.openScorm(path)
+
+          console.log("decrypt Path",path)
+        }
         container.appendChild(card);
+
+
       });
       
     }
