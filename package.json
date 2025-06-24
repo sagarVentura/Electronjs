@@ -8,7 +8,7 @@
     },
     "build": {
         "appId": "com.yourorg.scormviewer",
-        "productName": "Ventura App",
+        "productName": "Rieter",
         "directories": {
             "output": "dist",
             "buildResources": "build"
