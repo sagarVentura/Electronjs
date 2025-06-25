@@ -12,13 +12,57 @@
       background: #f9f9f9;
       border-radius: 8px;
     }
+
+      /* Small screens (e.g. phones) */
+  @media (max-width: 600px) {
+  body {
+      font-size: 14px;
+    }
+  }
+
+  /* Medium screens (e.g. tablets) */
+  @media (min-width: 601px) and (max-width: 1024px) {
+    body {
+      font-size: 16px;
+    }
+  }
+
+  /* Large screens (e.g. desktops) */
+  @media (min-width: 1025px) {
+    body {
+      font-size: 20px;
+    }
+  }
   </style>
 </head>
 <body>
-  <h1>Available Courses</h1>
+  <div style="display: flex; justify-content: flex-end; margin-block: 1%;">
+    <img src="./Asset/logo.png" alt="" srcset="" style="width:15%;">
+  </div>
+  <img src="./Asset/banner.png" alt="" srcset="" style="width:100%;">
+  <div style="color: #abb925; font-size: 3em; font-weight: 600;">OFFline ROOT – Front Page ​</div>
+  <div style="color: #1d5262; font-size: 2em;font-weight: 600;">Modules – Ring/Compact / Rotor and Air-jet​</div>
+ <div style="color: #1b5161;font-size: 1.2em;">Speaker, position​</div>
+ <div>
+  <button style="background-color: #1d5262; color: white;padding-inline: 1%; padding-block: .5%; 
+  border-radius: .5em; font-size: 1.2em; margin-top: 1em; border:none"
+  onclick="startFunction(`service Excellence`)"
+  >Start</button>
+ </div>
+ <script>
+ async  function startFunction(name) {
+         let path= await window.scormAPI.decryptScorm(name);
+           window.scormAPI.openScorm(path)
+
+          console.log("decrypt Path",path)
+  }
+</script>
+
+
   <div id="cardContainer"></div>
 
-   <script>
+  <!-- logic of  rendering  card of  with name of scorm content define in encrypt folder -->
+   <!-- <script>
     window.addEventListener('DOMContentLoaded', async () => {
       try{
      const courses = await window.scormAPI.getCourses();
@@ -49,7 +93,7 @@
   }
 }
   );
-  </script>
+  </script> -->
 
 </body>
 </html>
