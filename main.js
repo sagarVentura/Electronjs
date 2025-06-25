@@ -189,6 +189,10 @@ function createWindow() {
     console.log("call", courseName)
     try {
       //  if decrypt folder is exist then use it, otherwise create new decrypt folder
+      if(!fs.existsSync(courseEncryptedDir)){
+        dialog.showErrorBox("Package not found", "please connect with admin.");
+return null;
+      }
       if (!fs.existsSync(courseDecryptedDir)) {
         decryptFolderRecursive(courseEncryptedDir, courseDecryptedDir);
         /* it is use to remove folder*/

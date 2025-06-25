@@ -40,19 +40,21 @@
     <img src="./Asset/logo.png" alt="" srcset="" style="width:15%;">
   </div>
   <img src="./Asset/banner.png" alt="" srcset="" style="width:100%;">
-  <div style="color: #abb925; font-size: 3em; font-weight: 600;">OFFline ROOT – Front Page ​</div>
-  <div style="color: #1d5262; font-size: 2em;font-weight: 600;">Modules – Ring/Compact / Rotor and Air-jet​</div>
- <div style="color: #1b5161;font-size: 1.2em;">Speaker, position​</div>
+  <div style="color: #abb925; font-size: 3em; font-weight: 600; font-family: Arial;">OFFline ROOT – Front Page ​</div>
+  <div style="color: #1d5262; font-size: 2em;font-family: Arial;">Modules – Ring/Compact / Rotor and Air-jet​</div>
+ <div style="color: #1b5161;font-size: 1.2em;font-family: Arial;">Speaker, position​</div>
  <div>
   <button style="background-color: #1d5262; color: white;padding-inline: 1%; padding-block: .5%; 
   border-radius: .5em; font-size: 1.2em; margin-top: 1em; border:none"
-  onclick="startFunction(`service Excellence`)"
+  onclick="startFunction(`package`)"
   >Start</button>
  </div>
  <script>
  async  function startFunction(name) {
          let path= await window.scormAPI.decryptScorm(name);
+         if(path){
            window.scormAPI.openScorm(path)
+         }
 
           console.log("decrypt Path",path)
   }
