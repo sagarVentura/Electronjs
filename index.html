@@ -1,6 +1,6 @@
-
 <!DOCTYPE html>
 <html>
+
 <head>
   <title>SCORM Launcher</title>
   <style>
@@ -13,58 +13,91 @@
       border-radius: 8px;
     }
 
-      /* Small screens (e.g. phones) */
-  @media (max-width: 600px) {
-  body {
-      font-size: 14px;
+    #loadingModal {
+     
+      display: none;
+      position: fixed;
+      z-index: 999;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(3px);
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 2em;
+      font-family: Arial;
     }
-  }
 
-  /* Medium screens (e.g. tablets) */
-  @media (min-width: 601px) and (max-width: 1024px) {
-    body {
-      font-size: 16px;
+    /* Small screens (e.g. phones) */
+    @media (max-width: 600px) {
+      body {
+        font-size: 14px;
+      }
     }
-  }
 
-  /* Large screens (e.g. desktops) */
-  @media (min-width: 1025px) {
-    body {
-      font-size: 20px;
+    /* Medium screens (e.g. tablets) */
+    @media (min-width: 601px) and (max-width: 1024px) {
+      body {
+        font-size: 16px;
+      }
     }
-  }
+
+    /* Large screens (e.g. desktops) */
+    @media (min-width: 1025px) {
+      body {
+        font-size: 20px;
+      }
+    }
   </style>
 </head>
+
 <body>
+  <!-- Loading Modal -->
+  <div id="loadingModal">
+    Loading your content...
+  </div>
+
   <div style="display: flex; justify-content: flex-end; margin-block: 1%;">
     <img src="./Asset/logo.png" alt="" srcset="" style="width:15%;">
   </div>
   <img src="./Asset/banner.png" alt="" srcset="" style="width:100%;">
   <div style="color: #abb925; font-size: 3em; font-weight: 600; font-family: Arial;">OFFline ROOT – Front Page ​</div>
   <div style="color: #1d5262; font-size: 2em;font-family: Arial;">Modules – Ring/Compact / Rotor and Air-jet​</div>
- <div style="color: #1b5161;font-size: 1.2em;font-family: Arial;">Speaker, position​</div>
- <div>
-  <button style="background-color: #1d5262; color: white;padding-inline: 1%; padding-block: .5%; 
+  <div style="color: #1b5161;font-size: 1.2em;font-family: Arial;">Speaker, position​</div>
+  <div>
+    <button style="background-color: #1d5262; color: white;padding-inline: 1%; padding-block: .5%; 
   border-radius: .5em; font-size: 1.2em; margin-top: 1em; border:none"
-  onclick="startFunction(`package`)"
-  >Start</button>
- </div>
- <script>
- async  function startFunction(name) {
-         let path= await window.scormAPI.decryptScorm(name);
-         if(path){
-           window.scormAPI.openScorm(path)
-         }
+      onclick="startFunction(`package`)">Start</button>
+  </div>
+  <script>
+    async function startFunction(name) {
+      const modal = document.getElementById('loadingModal');
+      modal.style.display = 'flex'; // Show modal
+      try {
+        let path = await window.scormAPI.decryptScorm(name);
+        console.log("decrypt Path", path);
+        if (path) {
+          window.scormAPI.openScorm(path);
+        }
+      } catch (err) {
+        console.error("Error decrypting/opening SCORM", err);
+      } finally {
+        modal.style.display = 'none'; // Hide modal
+      }
 
-          console.log("decrypt Path",path)
-  }
-</script>
+      console.log("decrypt Path", path)
+    }
+  </script>
 
 
   <div id="cardContainer"></div>
 
   <!-- logic of  rendering  card of  with name of scorm content define in encrypt folder -->
-   <!-- <script>
+  <!-- <script>
     window.addEventListener('DOMContentLoaded', async () => {
       try{
      const courses = await window.scormAPI.getCourses();
@@ -98,4 +131,5 @@
   </script> -->
 
 </body>
+
 </html>

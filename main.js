@@ -19,7 +19,6 @@ let encryptedPath = null;
 
 //const encryptedPath = path.join(__dirname, '../encryptFolder');
 
-console.log("__dirname", decryptedPath)
 
 
 
@@ -138,7 +137,7 @@ function createWindow() {
     webPreferences: {
       contextIsolation: true,
       sandbox: true,
-      devTools: true,
+      devTools: false,
       preload: path.join(__dirname, 'preload.js'), // ✅ Make sure this path is correct
 
     }
@@ -149,7 +148,7 @@ function createWindow() {
   win.webContents.on('context-menu', (e) => e.preventDefault());
 
   /*ovpen development tool*/
-  win.webContents.openDevTools(); // ✅ Enable browser console
+ //win.webContents.openDevTools(); // ✅ Enable browser console
 
   ipcMain.handle('get-usb-info', () => {
     const devices = usb.getDeviceList();
@@ -173,7 +172,6 @@ function createWindow() {
 
     });
 
-    console.log("folders", folders)
 
     /*We Create array of folder available*/
     return folders.map(folder => ({
