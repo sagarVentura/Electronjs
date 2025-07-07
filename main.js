@@ -58,11 +58,28 @@ function getAllowedSerials({ serialNumber }) {
     const postData = JSON.stringify({ serialNumber });
     request.setHeader('Content-Type', 'application/json');
 
-
+    // // Optional: Add timeout (in milliseconds)
+    const timeout = setTimeout(() => {
+      request.abort(); // Abort the request
+      reject(new Error('Request timed out'));
+    }, 5000); // 10 seconds timeout
 
     let body = '';
 
     request.on('response', (response) => {
+      clearTimeout(timeout);
+      const statusCode = response.statusCode;
+      
+
+      if (statusCode < 200 || statusCode >= 300) {
+        reject({
+          title:'Server Unreachable',
+          message:'The server could not be reached at the moment.\nPlease try again after 1 hour.\nIf the issue still persists, contact your regional Rieter sales team for further assistance.',
+          show:true
+        });
+        
+      }
+
       response.on('data', (chunk) => {
         body += chunk.toString();
       });
@@ -72,13 +89,13 @@ function getAllowedSerials({ serialNumber }) {
           const json = JSON.parse(body);
           resolve(json?.data ?? []);
         } catch (err) {
-          reject(new Error('Failed to parse server response'));
+          reject({message:'Failed to parse server response',title:"Parsing Error"});
         }
       });
     });
 
     request.on('error', (error) => {
-      reject(error);
+      reject({title:`Network error`,message:"ROOT license verification failed. Please connect to the internet and try again."});
     });
 
     // Send request body
@@ -148,7 +165,7 @@ function createWindow() {
   win.webContents.on('context-menu', (e) => e.preventDefault());
 
   /*ovpen development tool*/
- //win.webContents.openDevTools(); // ✅ Enable browser console
+  //win.webContents.openDevTools(); // ✅ Enable browser console
 
   ipcMain.handle('get-usb-info', () => {
     const devices = usb.getDeviceList();
@@ -181,30 +198,48 @@ function createWindow() {
   });
 
   /*Decrypt specific course when user click on it*/
+
   ipcMain.handle('decrypt-course', async (event, courseName) => {
     const courseEncryptedDir = path.join(encryptedPath, courseName);
     const courseDecryptedDir = path.join(decryptedPath, courseName);
-    console.log("call", courseName)
+
+    console.log("call", courseName);
+
     try {
-      //  if decrypt folder is exist then use it, otherwise create new decrypt folder
-      if(!fs.existsSync(courseEncryptedDir)){
-        dialog.showErrorBox("Package not found", "please connect with admin.");
-return null;
-      }
-      if (!fs.existsSync(courseDecryptedDir)) {
-        decryptFolderRecursive(courseEncryptedDir, courseDecryptedDir);
-        /* it is use to remove folder*/
-        // fs.rmSync(courseDecryptedDir, { recursive: true, force: true });
+      // Check if encrypted directory exists
+      if (!fs.existsSync(courseEncryptedDir)) {
+        dialog.showErrorBox("Package not found", "Please connect with admin.");
+        return null;
       }
 
+      // 🔒 Check read access
+      try {
+        fs.accessSync(courseEncryptedDir, fs.constants.R_OK);
+      } catch (err) {
+        if (err.code === 'EACCES' || err.code === 'EPERM') {
+          dialog.showErrorBox("Permission Denied", "Access to the ROOT USB drive is blocked. Please allow permission in your system settings and try again.");
+          return null;
+        } else {
+          throw err; // Unknown error, rethrow
+        }
+      }
+
+      // Decrypt only if not already decrypted
+      if (!fs.existsSync(courseDecryptedDir)) {
+        decryptFolderRecursive(courseEncryptedDir, courseDecryptedDir);
+      }
 
       return courseDecryptedDir;
 
     } catch (err) {
       console.error("Decryption failed:", err);
-      throw err;
+      dialog.showErrorBox("Error", "An error occurred while loading the ROOT course. Please try again.");
+      return null;
     }
   });
+
+
+
 
   ipcMain.on('open-scorm', (event, coursePath) => {
     console.log("coursePath", coursePath)
@@ -235,47 +270,57 @@ return null;
 }
 
 app.whenReady().then(async () => {
-    const usbPath = findUSBDrivePath();
-    if (!usbPath) {
-      console.log("No USB drive detected.");
-    } else {
-      console.log("USB drive path:", usbPath);
-      /*we updated global variable  encryptedPath*/
-      encryptedPath = path.join(usbPath, 'Rieter/encryptFolder');
-      /*check is path is exsit or not*/
-      if(!fs.existsSync(encryptedPath)){
-        dialog.showErrorBox("Fail to varify content path","please connect with admin");
-        app.quit();
 
-      }
-      console.log("Encrypted folder:", encryptedPath);
-    }
-  
-  
-
-
-
-  // Step 2: get serial number list of all available pen Drive
+  // Step 1: get serial number list of all available devices
   let result = await getUSBSerials();
-  if (!result.length) {
-    dialog.showErrorBox("Access Denied", "Could not verify USB drive.");
+  if (!result?.length) {
+    /*means  we don't get information or detail of connected device to system */
+    dialog.showErrorBox("Access Denied", "Unable to verify ROOT USB drive");
     app.quit();
     return;
   }
+
+
+  // Step 2: get USB PATH
+
+  const usbPath = findUSBDrivePath();
+  if (!usbPath) {
+    console.log("No USB drive detected.");
+    dialog.showErrorBox("Fail to varify ", "No USB drive detected.");
+    app.quit();
+
+  } else {
+    /*we updated global variable  encryptedPath*/
+    encryptedPath = path.join(usbPath, 'Rieter/encryptFolder');
+    /*check is path is exsit or not*/
+    if (!fs.existsSync(encryptedPath)) {
+      dialog.showErrorBox("Fail to varify content path", "For assistance, please contact Rieter Customer Training.");
+      app.quit();
+
+    }  }
+
+
+
+
   // Step 3: send serial number to server to check is it is valide and  not expire pendrive by  `net
   let allowedSerials = {};
   try {
     allowedSerials = await getAllowedSerials({ serialNumber: result });
+    console.log("allowedSerials",allowedSerials)
   } catch (err) {
-    console.log("err", err);
-    dialog.showErrorBox("Network Error", "Failed to verify license. Please connect to the internet.");
+    // Check for known network-related error codes
+  
+      dialog.showErrorBox(
+        err?.title || "Error",
+        err?.message || "An unexpected error occurred during license verification."
+      );
+  
     app.quit();
     return;
   }
-
   // Step 4: on the bases of allowedSerials check whether user can allow to view content or quit app
   if (!allowedSerials?.valid) {
-    dialog.showErrorBox("Fail to varify", allowedSerials?.message ?? "");
+    dialog.showErrorBox("Fail to verify", allowedSerials?.message ?? "");
     app.quit();
     return;
   }
@@ -373,15 +418,24 @@ function findUSBDrivePath() {
   try {
     if (platform === 'darwin') {
       // macOS: USB drives are mounted under /Volumes
+      const usbPaths = [];
       const volumes = fs.readdirSync('/Volumes');
       for (const name of volumes) {
         if (name !== 'Macintosh HD') {
           const fullPath = path.join('/Volumes', name);
           if (fs.existsSync(fullPath)) {
-            return fullPath;
+            usbPaths.push(fullPath);
           }
         }
       }
+      // if ((usbPaths?.length) > 1) {
+      //   dialog.showErrorBox(
+      //     'Multiple USB Drives Detected',
+      //     'More than one USB drive is connected.\nPlease remove extra drives and try again.'
+      //   ); app.quit();
+      //   return;
+      // }
+      return usbPaths[0]
     }
 
     if (platform === 'win32') {
@@ -389,21 +443,53 @@ function findUSBDrivePath() {
       const output = execSync(`wmic logicaldisk where "drivetype=2" get deviceid`, { encoding: 'utf8' });
       const lines = output.split('\n').map(line => line.trim()).filter(Boolean);
       const deviceIds = lines.filter(line => /^[A-Z]:/.test(line));
-      if (deviceIds.length > 0) {
+      // if ((deviceIds?.length) > 1) {
+      //   dialog.showErrorBox(
+      //     'Multiple USB Drives Detected',
+      //     'More than one USB drive is connected.\nPlease remove extra drives and try again.'
+      //   );
+      //   app.quit();
+      //   return;
+      // }
+      if (deviceIds?.length > 0) {
         return deviceIds[0] + '\\'; // Return first removable drive (e.g. "E:\\")
       }
+
     }
 
     if (platform === 'linux') {
       // Linux: USB drives are often mounted under /media or /mnt
-      const baseDirs = ['/media', '/mnt', '/run/media'];
+      const baseDirs = [
+        `/media/${os.userInfo().username}`,
+        `/run/media/${os.userInfo().username}`,
+        `/mnt`
+      ];
+
+      const usbDrives = [];
+
       for (const base of baseDirs) {
         if (fs.existsSync(base)) {
           const entries = fs.readdirSync(base);
-          if (entries.length) {
-            return path.join(base, entries[0]); // e.g., /media/username/USB_DRIVE
+          for (const name of entries) {
+            const fullPath = path.join(base, name);
+            if (fs.statSync(fullPath).isDirectory()) {
+              usbDrives.push(fullPath);
+            }
           }
         }
+      }
+
+      // if (usbDrives.length > 1) {
+      //   dialog.showErrorBox(
+      //     'Multiple USB Drives Detected',
+      //     'More than one USB drive is connected.\nPlease remove extra drives and try again.'
+      //   );
+      //   app.quit();
+      //   return;
+      // }
+
+      if (usbDrives.length === 1) {
+        return usbDrives[0]; // ✅ Return path of single connected USB
       }
     }
 
