@@ -286,7 +286,7 @@ app.whenReady().then(async () => {
   const usbPath = findUSBDrivePath();
   if (!usbPath) {
     console.log("No USB drive detected.");
-    dialog.showErrorBox("Fail to varify ", "No USB drive detected.");
+    dialog.showErrorBox("Fail to varify ", "No Root USB drive detected.");
     app.quit();
 
   } else {
@@ -414,10 +414,10 @@ function decryptFolderRecursive(encryptedDir, targetDir) {
 
 function findUSBDrivePath() {
   const platform = os.platform();
-
+  const appPath = app.getAppPath(); // Path where the app is running from
+console.log("appPath",appPath)
   try {
     if (platform === 'darwin') {
-      // macOS: USB drives are mounted under /Volumes
       const usbPaths = [];
       const volumes = fs.readdirSync('/Volumes');
       for (const name of volumes) {
@@ -428,37 +428,47 @@ function findUSBDrivePath() {
           }
         }
       }
-      // if ((usbPaths?.length) > 1) {
-      //   dialog.showErrorBox(
-      //     'Multiple USB Drives Detected',
-      //     'More than one USB drive is connected.\nPlease remove extra drives and try again.'
-      //   ); app.quit();
-      //   return;
-      // }
-      return usbPaths[0]
+
+      if (usbPaths.length > 1) {
+
+        const fromUSB = usbPaths.find(p => {
+          console.log(p,appPath)
+          return appPath.startsWith(p)
+        });
+        if (fromUSB) return fromUSB;
+
+        // dialog.showErrorBox(
+        //   'Multiple USB Drives Detected',
+        //   'More than one USB drive is connected.\nPlease remove extra drives and try again.'
+        // );
+        // app.quit();
+        return;
+      }
+
+      return usbPaths[0] || null;
     }
 
     if (platform === 'win32') {
-      // Windows: DriveType=2 is removable drive
       const output = execSync(`wmic logicaldisk where "drivetype=2" get deviceid`, { encoding: 'utf8' });
       const lines = output.split('\n').map(line => line.trim()).filter(Boolean);
-      const deviceIds = lines.filter(line => /^[A-Z]:/.test(line));
-      // if ((deviceIds?.length) > 1) {
-      //   dialog.showErrorBox(
-      //     'Multiple USB Drives Detected',
-      //     'More than one USB drive is connected.\nPlease remove extra drives and try again.'
-      //   );
-      //   app.quit();
-      //   return;
-      // }
-      if (deviceIds?.length > 0) {
-        return deviceIds[0] + '\\'; // Return first removable drive (e.g. "E:\\")
+      const deviceIds = lines.filter(line => /^[A-Z]:/.test(line)).map(id => id + '\\');
+
+      if (deviceIds.length > 1) {
+        const fromUSB = deviceIds.find(p => appPath.toLowerCase().startsWith(p.toLowerCase()));
+        if (fromUSB) return fromUSB;
+
+        // dialog.showErrorBox(
+        //   'Multiple USB Drives Detected',
+        //   'More than one USB drive is connected.\nPlease remove extra drives and try again.'
+        // );
+        // app.quit();
+        return;
       }
 
+      return deviceIds[0] || null;
     }
 
     if (platform === 'linux') {
-      // Linux: USB drives are often mounted under /media or /mnt
       const baseDirs = [
         `/media/${os.userInfo().username}`,
         `/run/media/${os.userInfo().username}`,
@@ -479,24 +489,31 @@ function findUSBDrivePath() {
         }
       }
 
-      // if (usbDrives.length > 1) {
-      //   dialog.showErrorBox(
-      //     'Multiple USB Drives Detected',
-      //     'More than one USB drive is connected.\nPlease remove extra drives and try again.'
-      //   );
-      //   app.quit();
-      //   return;
-      // }
+      if (usbDrives.length > 1) {
+        const fromUSB = usbDrives.find(p => appPath.startsWith(p));
+        if (fromUSB) return fromUSB;
 
-      if (usbDrives.length === 1) {
-        return usbDrives[0]; // ✅ Return path of single connected USB
+        // dialog.showErrorBox(
+        //   'Multiple USB Drives Detected',
+        //   'More than one USB drive is connected.\nPlease remove extra drives and try again.'
+        // );
+        // app.quit();
+        return;
       }
+
+      return usbDrives[0] || null;
     }
 
   } catch (err) {
     console.error("Error finding USB path:", err);
+    dialog.showErrorBox("USB Detection Error", "An error occurred while trying to detect the USB drive.");
+    app.quit();
+    return;
   }
 
-  return null; // USB not found
+  dialog.showErrorBox("USB Not Found", "No USB drive was detected. Please insert the authorized USB and try again.");
+  app.quit();
+  return;
 }
+
 
