@@ -287,14 +287,13 @@ app.whenReady().then(async () => {
   let result = await getUSBSerials();
   if (!result?.length) {
     /*means  we don't get information or detail of connected device to system */
-    dialog.showErrorBox("Access Denied", "Unable to verify ROOT USB drive11");
+    dialog.showErrorBox("Access Denied", "Unable to verify ROOT USB drive");
     app.quit();
     return;
   }
 
 
   // Step 2: get USB PATH
-
   const usbPath = findUSBDrivePath();
   if (!usbPath) {
     console.log("No USB drive detected.");
@@ -333,7 +332,7 @@ app.whenReady().then(async () => {
   }
   // Step 4: on the bases of allowedSerials check whether user can allow to view content or quit app
   if (!allowedSerials?.valid) {
-    dialog.showErrorBox("Fail to verify", allowedSerials?.message ?? "");
+    dialog.showErrorBox(allowedSerials?.title??"Fail to verify", allowedSerials?.message ?? "");
     app.quit();
     return;
   }
