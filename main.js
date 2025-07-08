@@ -69,15 +69,15 @@ function getAllowedSerials({ serialNumber }) {
     request.on('response', (response) => {
       clearTimeout(timeout);
       const statusCode = response.statusCode;
-      
+
 
       if (statusCode < 200 || statusCode >= 300) {
         reject({
-          title:'Server Unreachable',
-          message:'The server could not be reached at the moment.\nPlease try again after 1 hour.\nIf the issue still persists, contact your regional Rieter sales team for further assistance.',
-          show:true
+          title: 'Server Unreachable',
+          message: 'The server could not be reached at the moment.\nPlease try again after 1 hour.\nIf the issue still persists, contact your regional Rieter sales team for further assistance.',
+          show: true
         });
-        
+
       }
 
       response.on('data', (chunk) => {
@@ -89,13 +89,13 @@ function getAllowedSerials({ serialNumber }) {
           const json = JSON.parse(body);
           resolve(json?.data ?? []);
         } catch (err) {
-          reject({message:'Failed to parse server response',title:"Parsing Error"});
+          reject({ message: 'Failed to parse server response', title: "Parsing Error" });
         }
       });
     });
 
     request.on('error', (error) => {
-      reject({title:`Network error`,message:"ROOT license verification failed. Please connect to the internet and try again."});
+      reject({ title: `Network error`, message: "ROOT license verification failed. Please connect to the internet and try again." });
     });
 
     // Send request body
@@ -297,7 +297,8 @@ app.whenReady().then(async () => {
       dialog.showErrorBox("Fail to varify content path", "For assistance, please contact Rieter Customer Training.");
       app.quit();
 
-    }  }
+    }
+  }
 
 
 
@@ -306,15 +307,15 @@ app.whenReady().then(async () => {
   let allowedSerials = {};
   try {
     allowedSerials = await getAllowedSerials({ serialNumber: result });
-    console.log("allowedSerials",allowedSerials)
+    console.log("allowedSerials", allowedSerials)
   } catch (err) {
     // Check for known network-related error codes
-  
-      dialog.showErrorBox(
-        err?.title || "Error",
-        err?.message || "An unexpected error occurred during license verification."
-      );
-  
+
+    dialog.showErrorBox(
+      err?.title || "Error",
+      err?.message || "An unexpected error occurred during license verification."
+    );
+
     app.quit();
     return;
   }
@@ -415,7 +416,7 @@ function decryptFolderRecursive(encryptedDir, targetDir) {
 function findUSBDrivePath() {
   const platform = os.platform();
   const appPath = app.getAppPath(); // Path where the app is running from
-console.log("appPath",appPath)
+  console.log("appPath", appPath)
   try {
     if (platform === 'darwin') {
       const usbPaths = [];
@@ -430,9 +431,8 @@ console.log("appPath",appPath)
       }
 
       if (usbPaths.length > 1) {
-
         const fromUSB = usbPaths.find(p => {
-          console.log(p,appPath)
+          console.log(p, appPath)
           return appPath.startsWith(p)
         });
         if (fromUSB) return fromUSB;
