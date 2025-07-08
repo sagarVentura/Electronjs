@@ -109,13 +109,25 @@ function getUSBSerials() {
 
   return new Promise((resolve, reject) => {
     if (platform === 'win32') {
-      exec(`wmic diskdrive where "InterfaceType='USB'" get SerialNumber`, (err, stdout) => {
-        if (err) return reject(err);
+       exec(`wmic diskdrive where "InterfaceType='USB'" get DeviceID`, (err, stdout) => {
+      if (err) return reject(err);
 
-        const lines = stdout.split('\n').map(line => line.trim()).filter(Boolean);
-        const serials = lines.slice(1).filter(Boolean); // Remove header
+      const lines = stdout.split('\n').map(line => line.trim()).filter(Boolean);
+      const deviceIDs = lines.slice(1);
+
+      // Get all serials with Win32_PhysicalMedia
+      exec(`wmic path Win32_PhysicalMedia get SerialNumber`, (err2, stdout2) => {
+        if (err2) return reject(err2);
+
+        const serialLines = stdout2.split('\n').map(line => line.trim()).filter(Boolean);
+        const serials = serialLines.slice(1).filter(Boolean);
+
+        // Note: This approach assumes ordering matches, which may not always be reliable.
+        // For production, query via PowerShell CIM to correlate DeviceID and SerialNumber accurately.
+
         resolve(serials);
       });
+    });
 
     } else if (platform === 'linux') {
       exec(`lsusb -v 2>/dev/null | grep -i "iSerial"`, (err, stdout) => {
@@ -275,7 +287,7 @@ app.whenReady().then(async () => {
   let result = await getUSBSerials();
   if (!result?.length) {
     /*means  we don't get information or detail of connected device to system */
-    dialog.showErrorBox("Access Denied", "Unable to verify ROOT USB drive");
+    dialog.showErrorBox("Access Denied", "Unable to verify ROOT USB drive11");
     app.quit();
     return;
   }
@@ -452,7 +464,7 @@ function findUSBDrivePath() {
       const output = execSync(`wmic logicaldisk where "drivetype=2" get deviceid`, { encoding: 'utf8' });
       const lines = output.split('\n').map(line => line.trim()).filter(Boolean);
       const deviceIds = lines.filter(line => /^[A-Z]:/.test(line)).map(id => id + '\\');
-
+console.log("deviceIds",deviceIds,'appPath',appPath)
       if (deviceIds.length > 1) {
         const fromUSB = deviceIds.find(p => appPath.toLowerCase().startsWith(p.toLowerCase()));
         if (fromUSB) return fromUSB;
