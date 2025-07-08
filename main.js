@@ -109,15 +109,21 @@ function getUSBSerials() {
 
   return new Promise((resolve, reject) => {
     if (platform === 'win32') {
-      exec(`wmic diskdrive where "InterfaceType='USB'" get SerialNumber`, (err, stdout) => {
+      exec(`wmic diskdrive where "InterfaceType='USB'" get PNPDeviceID`, (err, stdout) => {
         if (err) return reject(err);
 
         const lines = stdout.split('\n').map(line => line.trim()).filter(Boolean);
-        const serials = lines.slice(1).filter(Boolean); // Remove header
+        const deviceIDs = lines.slice(1); // skip header
+
+        const serials = deviceIDs.map(id => {
+          // Example: USBSTOR\\DISK&VEN_SANDISK&PROD_ULTRA&REV_1.00\\1234567890ABCDEF-0:0
+          const match = id.match(/\\([^\\]+)-\d+:\d+$/);
+          return match?.[1] || null;
+        }).filter(Boolean);
+
         resolve(serials);
       });
-
-    } else if (platform === 'linux') {
+    }  else if (platform === 'linux') {
       exec(`lsusb -v 2>/dev/null | grep -i "iSerial"`, (err, stdout) => {
         if (err) return reject(err);
 
