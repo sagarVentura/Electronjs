@@ -72,9 +72,10 @@ function getAllowedSerials({ serialNumber }) {
 
 
       if (statusCode < 200 || statusCode >= 300) {
+        /*Error message*/
         reject({
           title: 'Server Unreachable',
-          message: 'The server could not be reached at the moment.\nPlease try again after 1 hour.\nIf the issue still persists, contact your regional Rieter sales team for further assistance.',
+          message: 'The server could not be reached at the moment.\nPlease try again after 1 hour.\nIf the issue still persists, Please contact your regional Rieter sales team with the USB serial number (found on the USB cover)',
           show: true
         });
 
@@ -89,12 +90,14 @@ function getAllowedSerials({ serialNumber }) {
           const json = JSON.parse(body);
           resolve(json?.data ?? []);
         } catch (err) {
-          reject({ message: 'Failed to parse server response', title: "Parsing Error" });
+                  /*Error message*/
+          reject({ message: 'Failed to parse server response, Please contact your regional Rieter sales team with the USB serial number (found on the USB cover)', title: "Parsing Error" });
         }
       });
     });
 
     request.on('error', (error) => {
+              /*Error message*/
       reject({ title: `Network error`, message: "ROOT license verification failed. Please connect to the internet and try again." });
     });
 
@@ -220,7 +223,8 @@ function createWindow() {
     try {
       // Check if encrypted directory exists
       if (!fs.existsSync(courseEncryptedDir)) {
-        dialog.showErrorBox("Package not found", "Please connect with admin.");
+        /*Error message*/
+        dialog.showErrorBox("Package not found", "For assistance, Please contact your regional Rieter sales team with the USB serial number (found on the USB cover)");
         return null;
       }
 
@@ -229,6 +233,7 @@ function createWindow() {
         fs.accessSync(courseEncryptedDir, fs.constants.R_OK);
       } catch (err) {
         if (err.code === 'EACCES' || err.code === 'EPERM') {
+                  /*Error message*/
           dialog.showErrorBox("Permission Denied", "Access to the ROOT USB drive is blocked. Please allow permission in your system settings and try again.");
           return null;
         } else {
@@ -245,7 +250,8 @@ function createWindow() {
 
     } catch (err) {
       console.error("Decryption failed:", err);
-      dialog.showErrorBox("Error", "An error occurred while loading the ROOT course. Please try again.");
+              /*Error message*/
+      dialog.showErrorBox("Error", "For assistance, Please contact your regional Rieter sales team with the USB serial number (found on the USB cover)");
       return null;
     }
   });
@@ -287,6 +293,7 @@ app.whenReady().then(async () => {
   let result = await getUSBSerials();
   if (!result?.length) {
     /*means  we don't get information or detail of connected device to system */
+            /*Error message*/
     dialog.showErrorBox("Access Denied", "Unable to verify ROOT USB drive");
     app.quit();
     return;
@@ -297,15 +304,18 @@ app.whenReady().then(async () => {
   const usbPath = findUSBDrivePath();
   if (!usbPath) {
     console.log("No USB drive detected.");
-    dialog.showErrorBox("Fail to varify ", "No Root USB drive detected.");
+            /*Error message*/
+
+    dialog.showErrorBox("Fail to varify ", "No Root USB drive path detected. Please contact your regional Rieter sales team with the USB serial number (found on the USB cover)");
     app.quit();
 
   } else {
     /*we updated global variable  encryptedPath*/
     encryptedPath = path.join(usbPath, 'Rieter/encryptFolder');
-    /*check is path is exsit or not*/
+    /*check is path is exit or not*/
     if (!fs.existsSync(encryptedPath)) {
-      dialog.showErrorBox("Fail to varify content path", "For assistance, please contact Rieter Customer Training.");
+              /*Error message*/
+      dialog.showErrorBox("Fail to varify content path", "Please contact your regional Rieter sales team with the USB serial number (found on the USB cover).");
       app.quit();
 
     }
