@@ -251,7 +251,7 @@ function createWindow() {
     } catch (err) {
       console.error("Decryption failed:", err);
               /*Error message*/
-      dialog.showErrorBox("Error", "For assistance, Please contact your regional Rieter sales team with the USB serial number (found on the USB cover)");
+      dialog.showErrorBox("Error Decryption failed", "For assistance, Please contact your regional Rieter sales team with the USB serial number (found on the USB cover)");
       return null;
     }
   });
@@ -306,7 +306,7 @@ app.whenReady().then(async () => {
     console.log("No USB drive detected.");
             /*Error message*/
 
-    dialog.showErrorBox("Fail to varify ", "No Root USB drive detected. Please contact your regional Rieter sales team with the USB serial number (found on the USB cover)");
+    dialog.showErrorBox("Fail to varify ", "No ROOT USB drive path detected. Please contact your regional Rieter sales team with the USB serial number (found on the USB cover)");
     app.quit();
 
   } else {
@@ -527,7 +527,7 @@ console.log("deviceIds",deviceIds,'appPath',appPath)
 
   } catch (err) {
     console.error("Error finding USB path:", err);
-    dialog.showErrorBox("USB Detection Error", "An error occurred while trying to detect the USB drive.");
+    dialog.showErrorBox("USB Detection Error", "An error occurred while trying to detect the ROOT USB drive.");
     app.quit();
     return;
   }
