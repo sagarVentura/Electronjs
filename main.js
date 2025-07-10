@@ -169,7 +169,7 @@ function createWindow() {
     webPreferences: {
       contextIsolation: true,
       sandbox: true,
-      devTools: true,
+      devTools: false,
       preload: path.join(__dirname, 'preload.js'), // ✅ Make sure this path is correct
 
     }
@@ -180,7 +180,7 @@ function createWindow() {
   win.webContents.on('context-menu', (e) => e.preventDefault());
 
   /*ovpen development tool*/
-  win.webContents.openDevTools(); // ✅ Enable browser console
+  //win.webContents.openDevTools(); // ✅ Enable browser console
 
   ipcMain.handle('get-usb-info', () => {
     const devices = usb.getDeviceList();
@@ -302,23 +302,23 @@ app.whenReady().then(async () => {
 
   // Step 2: get USB PATH
   const usbPath = findUSBDrivePath();
-  if (usbPath) {
+  if (!usbPath) {
     console.log("No USB drive detected.");
             /*Error message*/
 
-    dialog.showErrorBox("Fail to varify ", "No Root USB drive path detected. Please contact your regional Rieter sales team with the USB serial number (found on the USB cover)");
+    dialog.showErrorBox("Fail to varify ", "No Root USB drive detected. Please contact your regional Rieter sales team with the USB serial number (found on the USB cover)");
     app.quit();
 
   } else {
     /*we updated global variable  encryptedPath*/
-    encryptedPath = path.join("usbPath", 'Rieter/encryptFolder');
+    encryptedPath = path.join(usbPath, 'Rieter/encryptFolder');
     /*check is path is exit or not*/
-    // if (!fs.existsSync(encryptedPath)) {
-    //           /*Error message*/
-    //   dialog.showErrorBox("Fail to varify content path", "Please contact your regional Rieter sales team with the USB serial number (found on the USB cover).");
-    //   app.quit();
+    if (!fs.existsSync(encryptedPath)) {
+              /*Error message*/
+      dialog.showErrorBox("Fail to varify content path", "Please contact your regional Rieter sales team with the USB serial number (found on the USB cover).");
+      app.quit();
 
-    // }
+    }
   }
 
 
