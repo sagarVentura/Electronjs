@@ -12,12 +12,12 @@ const key = crypto.scryptSync('your-secret-password', 'some-salt', 32);
 /* live testing*/
 const decryptedPath = path.join(app.getPath('temp'), 'decrypted-scorm');
 let encryptedPath = null;
-let scormContentPath="scormcontent"
+let scormContentPath="Rieter/scormcontent"
 
 let USBPath=null;
 
 /*lauchpage.html page of showing ring spinner intial page*/
-let htmlfilePath="htmlPage/launchpage.html"
+let htmlfilePath="Rieter/htmlPage/launchpage.html"
 
 /*local  testing*/
 // const decryptedPath = path.join(__dirname, 'decryptedFolder');
