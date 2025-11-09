@@ -162,7 +162,8 @@
     }
 
     /* === LAYERS === */
-    .layer {
+    .layer,
+    .layerTopTab {
       position: absolute;
       inset: 0;
       background: #fff;
@@ -174,7 +175,8 @@
       animation: fadeIn 0.3s ease-in-out;
     }
 
-    .layer.active {
+    .layer.active,
+    .layerTopTab.active {
       display: flex;
     }
 
@@ -437,7 +439,8 @@
     <svg class="spinner" viewBox="0 0 50 50">
       <circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle>
     </svg>
-    <div style="color: #ffffff; font-weight: 600;font-family: Arial">Please wait, your ROOT lesson is getting ready...
+    <div style="color: #ffffff; font-weight: 600;font-family: Arial">Please wait, your ROOT lesson is getting ready it
+      may take 2-3 minutes...
     </div>
   </div>
 
@@ -454,9 +457,9 @@
 
       <!-- Tabs -->
       <div class="tab-section" id="tabsContainer">
-        <div class="tabs">
-          <div class="tab">General Safety</div>
-          <div class="tab">Message to the Operator</div>
+        <div class="tabs machinesTopTab">
+          <div class="tab"><span>General Safety</span></div>
+          <div class="tab"><span>Message to the Operator</span></div>
         </div>
         <div class="sub-tabs">
           <div class="sub-tab">Fiber Preparation</div>
@@ -505,6 +508,8 @@
           </div>
         </div>
 
+       
+
         <!-- Layer 2: Modules -->
         <div class="layer" id="moduleLayer">
           <div class="module-section">
@@ -543,6 +548,10 @@
 
   <script>
     // scaling
+
+    let selectedMachine = null;
+    let selectionSection = null
+    let selectedLanguage = null;
     (function () {
       const STAGE_W = 1920, STAGE_H = 1080;
       const stage = document.querySelector('.stage'), wrapper = document.querySelector('.wrapper');
@@ -565,46 +574,17 @@
     const tabsContainer = document.getElementById('tabsContainer');
     const sectionTitle = document.getElementById('sectionTitle');
     const languageLayer = document.getElementById('languageLayer');
+
     const moduleLayer = document.getElementById('moduleLayer');
     const backBtn1 = document.getElementById('backBtn1');
     const backBtn2 = document.getElementById('backBtn2');
 
-    // // click Ring / Compact spinning → show language layer
-    // ringSpinningBtn.addEventListener('click', () => {
-    //   machineGrid.classList.add('hidden');
-    //   tabsContainer.classList.add('hidden');
-    //   sectionTitle.classList.add('hidden');
-    //   languageLayer.classList.add('active');
-    // });
 
-    // // click a language → show module layer
-    // document.querySelectorAll('.language').forEach(btn => {
-    //   btn.addEventListener('click', () => {
-    //     languageLayer.classList.remove('active');
-    //     moduleLayer.classList.add('active');
-    //   });
-    // });
-
-    // back from module layer → go to language layer
-    backBtn2.addEventListener('click', () => {
-      moduleLayer.classList.remove('active');
-      languageLayer.classList.add('active');
-    });
-
-    // back from language layer → go to main menu
-    backBtn1.addEventListener('click', () => {
-      languageLayer.classList.remove('active');
-      machineGrid.classList.remove('hidden');
-      tabsContainer.classList.remove('hidden');
-      sectionTitle.classList.remove('hidden');
-    });
 
     // ===== Basic Elements =====
 
     const modulesContainer = document.querySelector('#moduleLayer .modules');
 
-    let selectedMachine = null;
-    let selectedLanguage = null;
 
     // ===== Course Data (inline definition) =====
     const modulesData = {
@@ -623,7 +603,7 @@
         { title: "RIETER LM DISPLAY ELEMENTS", folder: "package2" },
         { title: "RIETER LM FREQUENTLY COMMITTED MISTAKES", folder: "package3" },
         { title: "RIETER LM MACHINE OPERATION", folder: "operation.html" },
-       
+
       ],
       "Blowroom": [
         { title: "RIETER LM OVERVIEW OF THE MACHINE", folder: "blowroom_overview.html" },
@@ -633,9 +613,35 @@
       "Card": [
         { title: "RIETER LM MACHINE OPERATION", folder: "card_operation.html" },
         { title: "RIETER LM DISPLAY ELEMENTS", folder: "card_display.html" }
+      ],
+      "General Safety": [
+        { title: "General Safety", folder: "package1" },
       ]
       // Add others similarly if needed
     };
+
+
+    const tabData = {
+      "General Safety": "package1",
+      "Message to the Operator": "Message to the Operator"
+
+    }
+    /*top tab data handle like General Safety*/
+    document.querySelectorAll('.machinesTopTab').forEach(machine => {
+      machine.addEventListener('click', () => {
+        selectedMachine = machine.querySelector('span').textContent.trim();
+        console.log("Selected Machine:", selectedMachine);
+        // Hide main menu
+        machineGrid.classList.add('hidden');
+        tabsContainer.classList.add('hidden');
+        sectionTitle.classList.add('hidden');
+
+        // Show language selection
+        languageLayer.classList.add('active');
+      });
+    });
+
+
 
     // ===== MACHINE CLICK → Show Language Layer =====
     document.querySelectorAll('.machine').forEach(machine => {
@@ -721,6 +727,9 @@
       tabsContainer.classList.remove('hidden');
       sectionTitle.classList.remove('hidden');
     });
+
+
+
   </script>
 
 </body>
