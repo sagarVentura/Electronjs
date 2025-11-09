@@ -10,16 +10,18 @@ const os = require('os');
 
 const key = crypto.scryptSync('your-secret-password', 'some-salt', 32);
 /* live testing*/
-const decryptedPath = path.join(app.getPath('temp'), 'decrypted-scorm');
-let encryptedPath = null;
+//const decryptedPath = path.join(app.getPath('temp'), 'decrypted-scorm');
+// let encryptedPath = null;
+let scormContentPath="scormContent"
 
+let USBPath=null;
+
+/*lauchpage.html page of showing ring spinner intial page*/
+let htmlfilePath="htmlPage/launchpage.html"
 
 /*local  testing*/
-//const decryptedPath = path.join(__dirname, 'decryptedFolder');
-
-//const encryptedPath = path.join(__dirname, '../encryptFolder');
-
-
+const decryptedPath = path.join(__dirname, 'decryptedFolder');
+let encryptedPath = path.join(__dirname, scormContentPath);
 
 
 
@@ -194,26 +196,8 @@ function createWindow() {
     });
   });
 
-  ipcMain.handle('get-scorm-courses', () => {
-    let folders = fs.readdirSync(encryptedPath);
-    folders = folders.filter(folder => {
-      /* item is not folder then not include it because in  encryptedPath their .DS_Store file present*/
-
-      const fullPath = path.join(encryptedPath, folder);
-      return fs.statSync(fullPath).isDirectory()
-
-    });
-
-
-    /*We Create array of folder available*/
-    return folders.map(folder => ({
-      name: folder,
-      path: path.join(encryptedPath)
-    }));
-  });
-
+ 
   /*Decrypt specific course when user click on it*/
-
   ipcMain.handle('decrypt-course', async (event, courseName) => {
     const courseEncryptedDir = path.join(encryptedPath, courseName);
     const courseDecryptedDir = path.join(decryptedPath, courseName);
@@ -246,7 +230,9 @@ function createWindow() {
         decryptFolderRecursive(courseEncryptedDir, courseDecryptedDir);
       }
 
-      return courseDecryptedDir;
+      // return courseDecryptedDir;
+
+   await  openScormWindow(courseDecryptedDir)
 
     } catch (err) {
       console.error("Decryption failed:", err);
@@ -256,9 +242,75 @@ function createWindow() {
     }
   });
 
+  /*load html file present in pendrive like lauchpage.html inside htmlpage */
+  ipcMain.on('open-local-html', (event) => {
+    /*local testing */
+    if(!USBPath){
+      USBPath=__dirname
+    }
+
+   let filePath= path.join(USBPath, htmlfilePath)
+    
+    if (!fs.existsSync(filePath)) {
+      dialog.showErrorBox("File Not Found", `Please contact your regional Rieter sales team with the USB serial number (found on the USB cover)`);
+      return;
+    }
+
+    const htmlWin = new BrowserWindow({
+      width: 1200,
+      height: 800,
+      webPreferences: {
+        contextIsolation: true,
+        sandbox: true,
+        preload: path.join(__dirname, 'preload.js')
+      }
+    });
+    
+    htmlWin.removeMenu();
+    htmlWin.webContents.on('context-menu', e => e.preventDefault());
+    htmlWin.loadURL(`file://${filePath}`);
+  });
 
 
+  /*common function which take path of  scorm package  and load it in browser window*/
+  async function openScormWindow(coursePath) {
+    // console.log("Opening SCORM:", coursePath);
+    try{
+    if (!fs.existsSync(coursePath)) {
+      dialog.showErrorBox("File Not Found", `Please contact your regional Rieter sales team with the USB serial number (found on the USB cover)`);
+   throw  "path of decrypt folder is not exist"
+    }
+  
+    const scormWin = new BrowserWindow({
+      width: 1200,
+      height: 800,
+      webPreferences: {
+        contextIsolation: true,
+        sandbox: true,
+        preload: path.join(__dirname, 'preload.js')
+      }
+    });
+  
+    scormWin.removeMenu();
+    scormWin.webContents.on('context-menu', e => e.preventDefault());
+  
+    // Launch SCORM HTML file (story.html or index.html)
+    const possibleEntries = ['story.html', 'index_lms.html', 'index.html'];
+    const entry = possibleEntries.find(f => fs.existsSync(path.join(coursePath, f)));
+  
+    if (!entry) {
+      dialog.showErrorBox("Invalid SCORM", "No valid launch file found.");
+      throw  "Invalid SCORM", "No valid launch file found."
+    }
 
+    scormWin.loadFile(path.join(coursePath, 'story.html'));
+  }
+  catch(err){
+    throw err;
+  }
+  }
+  
+  /*scorm opening handler through  ipcMain handler means we can it in our html files*/
   ipcMain.on('open-scorm', (event, coursePath) => {
     console.log("coursePath", coursePath)
     const scormWin = new BrowserWindow({
@@ -301,51 +353,52 @@ app.whenReady().then(async () => {
 
 
   // Step 2: get USB PATH
-  const usbPath = findUSBDrivePath();
-  if (!usbPath) {
-    console.log("No USB drive detected.");
-            /*Error message*/
+  // const usbPath = findUSBDrivePath();
+  // USBPath=usbPath;
+  // if (!usbPath) {
+  //   console.log("No USB drive detected.");
+  //           /*Error message*/
 
-    dialog.showErrorBox("Fail to varify ", "No ROOT USB drive path detected. Please contact your regional Rieter sales team with the USB serial number (found on the USB cover)");
-    app.quit();
+  //   dialog.showErrorBox("Fail to varify ", "No ROOT USB drive path detected. Please contact your regional Rieter sales team with the USB serial number (found on the USB cover)");
+  //   app.quit();
 
-  } else {
-    /*we updated global variable  encryptedPath*/
-    encryptedPath = path.join(usbPath, 'Rieter/encryptFolder');
-    /*check is path is exit or not*/
-    if (!fs.existsSync(encryptedPath)) {
-              /*Error message*/
-      dialog.showErrorBox("Fail to varify content path", "Please contact your regional Rieter sales team with the USB serial number (found on the USB cover).");
-      app.quit();
+  // } else {
+  //   /*we updated global variable  encryptedPath*/
+  //   encryptedPath = path.join(usbPath, 'R');
+  //   /*check is path is exit or not*/
+  //   if (!fs.existsSync(encryptedPath)) {
+  //             /*Error message*/
+  //     dialog.showErrorBox("Fail to varify content path", "Please contact your regional Rieter sales team with the USB serial number (found on the USB cover).");
+  //     app.quit();
 
-    }
-  }
+  //   }
+  // }
 
 
 
 
   // Step 3: send serial number to server to check is it is valide and  not expire pendrive by  `net
-  let allowedSerials = {};
-  try {
-    allowedSerials = await getAllowedSerials({ serialNumber: result });
-    console.log("allowedSerials", allowedSerials)
-  } catch (err) {
-    // Check for known network-related error codes
+  // let allowedSerials = {};
+  // try {
+  //   allowedSerials = await getAllowedSerials({ serialNumber: result });
+  //   console.log("allowedSerials", allowedSerials)
+  // } catch (err) {
+  //   // Check for known network-related error codes
 
-    dialog.showErrorBox(
-      err?.title || "Error",
-      err?.message || "An unexpected error occurred during license verification."
-    );
+  //   dialog.showErrorBox(
+  //     err?.title || "Error",
+  //     err?.message || "An unexpected error occurred during license verification."
+  //   );
 
-    app.quit();
-    return;
-  }
-  // Step 4: on the bases of allowedSerials check whether user can allow to view content or quit app
-  if (!allowedSerials?.valid) {
-    dialog.showErrorBox(allowedSerials?.title??"Fail to verify", allowedSerials?.message ?? "");
-    app.quit();
-    return;
-  }
+  //   app.quit();
+  //   return;
+  // }
+  // // Step 4: on the bases of allowedSerials check whether user can allow to view content or quit app
+  // if (!allowedSerials?.valid) {
+  //   dialog.showErrorBox(allowedSerials?.title??"Fail to verify", allowedSerials?.message ?? "");
+  //   app.quit();
+  //   return;
+  // }
 
   // Step 5: Launch app
   createWindow();
@@ -369,9 +422,6 @@ function cleanDecryptedFolder() {
     console.error("❌ Failed to clean decrypted folder:", err);
   }
 }
-
-
-
 
 
 

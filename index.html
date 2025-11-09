@@ -165,61 +165,42 @@
 
     </div>
     <script>
+      // async function startFunction(name) {
+      //   const modal = document.getElementById('loadingModal');
+      //   modal.style.display = 'flex'; // Show modal
+
+      //   try {
+      //     let path = await window.scormAPI.decryptScorm(name);
+      //     console.log("decrypt Path", path);
+      //     if (path) {
+      //       window.scormAPI.openScorm(path);
+      //     }
+      //   } catch (err) {
+      //     console.error("Error decrypting/opening SCORM", err);
+      //   } finally {
+      //     modal.style.display = 'none'; // Hide modal
+      //   }
+
+      //   console.log("decrypt Path", path)
+      // }
+   
+
       async function startFunction(name) {
-        const modal = document.getElementById('loadingModal');
-        modal.style.display = 'flex'; // Show modal
+    const modal = document.getElementById('loadingModal');
+    modal.style.display = 'flex'; // Show loading spinner
 
-        try {
-          let path = await window.scormAPI.decryptScorm(name);
-          console.log("decrypt Path", path);
-          if (path) {
-            window.scormAPI.openScorm(path);
-          }
-        } catch (err) {
-          console.error("Error decrypting/opening SCORM", err);
-        } finally {
-          modal.style.display = 'none'; // Hide modal
-        }
-
-        console.log("decrypt Path", path)
-      }
-    </script>
-
-
-
-    <!-- logic of  rendering  card of  with name of scorm content define in encrypt folder -->
-    <!-- <script>
-    window.addEventListener('DOMContentLoaded', async () => {
-      try{
-     const courses = await window.scormAPI.getCourses();
-      const container = document.getElementById('cardContainer');
-      console.log("call goes",courses.length)
-
-      courses.forEach(course => {
-        console.log("Course",course)
-
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.textContent = course.name;
-        card.onclick = async () => {
-         let path= await window.scormAPI.decryptScorm(course.name);
-           window.scormAPI.openScorm(path)
-
-          console.log("decrypt Path",path)
-        }
-        container.appendChild(card);
-
-
-      });
-      
+    try {
+      // Example: point to your local HTML file on USB
+      const filePath = ''; // <-- change to your actual USB file path
+      window.scormAPI.openLocalHtml(filePath);
+    } catch (err) {
+      console.error("Error opening local HTML:", err);
+    } finally {
+      modal.style.display = 'none';
     }
-  catch(err){
-    console.log("print Error",err)
-
   }
-}
-  );
-  </script> -->
+   
+   </script>
 
 </body>
 
