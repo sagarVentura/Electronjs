@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ROOT – Rieter Online Operator Training</title>
+  <style>
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: #1C5262;
+      font-family: Arial, sans-serif;
+      overflow: hidden;
+    }
+
+    .divider {
+      width: 100%;
+      height: 2px;
+      background: #1C5262;
+      margin: 15px 0;
+    }
+
+    .wrapper {
+      position: absolute;
+      top: 0;
+      left: 0;
+      will-change: transform, left, top;
+    }
+
+    .eye-tab {
+      position: relative;
+      padding: 10px 16px;
+      font-weight: 600;
+      cursor: pointer;
+      background: transparent;
+      /* No background */
+    }
+
+    /* Eye icon only on hover */
+    .eye-tab:hover::after {
+      content: "";
+      position: absolute;
+      top: -40px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 65px;
+      height: 65px;
+      background-image: url("eye.png");
+      background-size: contain;
+      background-repeat: no-repeat;
+      pointer-events: none;
+    }
+
+    /* Shape / skew additions still allowed */
+
+
+    .stage {
+      width: 1920px;
+      height: 1080px;
+      background: #ffffff;
+      border: 1px solid #ccc;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transition: transform 0.2s ease-in-out;
+      position: relative;
+    }
+
+    /* === HEADER === */
+    .header-top {
+      background: #fff;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 40px;
+      border-bottom: 1px solid #1C5262;
+    }
+
+    .header-top img {
+      height: 40px;
+    }
+
+    .header-bottom {
+      background: #1C5262;
+      padding: 16px 40px;
+      color: #fff;
+    }
+
+    .main-title {
+      font-size: 26px;
+      font-weight: bold;
+      color: #C0D12A;
+      margin: 0;
+    }
+
+    .sub-title {
+      font-size: 20px;
+      color: #ffffff;
+      margin: 6px 0 0 0;
+    }
+
+    /* === TABS === */
+    .tab-section {
+      background: #fff;
+      padding: 10px 40px 0;
+      box-sizing: border-box;
+      /* border-bottom: 2px solid #ddd; */
+    }
+
+    .tabs {
+      display: flex;
+      margin-bottom: 5px;
+    }
+
+    .tab {
+      padding: 10px 170px;
+      font-size: 18px;
+      cursor: pointer;
+      margin-right: 8px;
+      background: #e6f0fa;
+      color: #1C5262;
+      font-weight: bold;
+      border-radius: 4px 4px 0 0;
+    }
+
+    .sub-tabs {
+      display: flex;
+      width: 100%;
+    }
+
+    .sub-tab {
+      padding: 10px 20px;
+      font-weight: 600;
+      color: #0a3a4a;
+      background: #eaf3fc;
+      position: relative;
+      margin-right: 20px;
+    }
+
+    .sub-tab.left {
+      flex: 1;
+    }
+
+    .sub-tab.right {
+      background: #d1e6ff;
+      flex: 0.4;
+    }
+
+    /* Right slant (parallelogram) */
+    .sub-tab::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      right: -4px;
+      width: 12px;
+      height: 100%;
+      background: inherit;
+      transform: skewX(-20deg);
+    }
+
+    /* Left slant only for second tab (optional — can skip if not needed) */
+    .sub-tab.right::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: -4px;
+      width: 12px;
+      height: 100%;
+      background: inherit;
+      transform: skewX(-20deg);
+    }
+
+
+    /* === CONTENT AREA === */
+    .content {
+      flex: 1;
+      background: #fff;
+      padding: 20px 40px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .section-title {
+      font-size: 22px;
+      font-weight: bold;
+      color: #1C5262;
+      margin: 12px 0;
+    }
+
+    /* Machines */
+    .machines {
+      display: flex;
+      flex-wrap: wrap;
+      /* gap: 30px; */
+      align-items: flex-start;
+      margin-top: 8px;
+    }
+
+    .machine {
+      text-align: center;
+      cursor: pointer;
+    }
+
+    .machine img {
+      max-width: 180px;
+      height: auto;
+      display: block;
+      margin: 0 auto;
+      transition: transform 0.2s;
+    }
+
+    .machine:hover img {
+      transform: scale(1.05);
+    }
+
+    .machine span {
+      display: block;
+      font-size: 16px;
+      color: #1C5262;
+      font-weight: 600;
+      margin-top: 6px;
+    }
+
+    /* === LAYERS === */
+    .layer {
+      position: absolute;
+      inset: 0;
+      background: #fff;
+      display: none;
+      justify-content: space-between;
+      align-items: center;
+      padding: 80px;
+      box-sizing: border-box;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+
+    .layer.active {
+      display: flex;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: scale(0.98);
+      }
+
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    .language-section,
+    .module-section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    .language-icon,
+    .module-icon {
+      width: 230px;
+      margin-bottom: 20px;
+    }
+
+    .languages,
+    .modules {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .language,
+    .module {
+      background: #e6f0fa;
+      color: #1C5262;
+      font-size: 18px;
+      font-weight: 600;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      width: 520px;
+      transition: background 0.2s;
+      text-transform: uppercase;
+    }
+
+    .language:hover,
+    .module:hover {
+      background: #C0D12A;
+      color: #1C5262;
+    }
+
+    .image-section {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+    }
+
+    .image-section img {
+      width: 750px;
+      height: auto;
+      border-radius: 4px;
+      margin-right: 150px;
+    }
+
+    .back-btn {
+      position: absolute;
+      right: 40px;
+      bottom: 40px;
+      cursor: pointer;
+      transform: scaleX(-1);
+    }
+
+    .back-btn:hover {
+      opacity: 0.7;
+    }
+
+    .back-btn img {
+      /* width: 30px; */
+      transform: scaleX(-1);
+    }
+
+    /* Footer */
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 40px;
+      font-size: 14px;
+      color: #777;
+      border-top: 1px solid #ccc;
+    }
+
+    .exit-btn {
+      background: #F5E149;
+      width: 50px;
+      height: 50px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      display: none;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .exit-btn img {
+      width: 26px;
+      height: 26px;
+      display: none;
+
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    body {
+      margin: 0px;
+      padding: .5em;
+      box-sizing: border-box;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      /* Align to right */
+    }
+
+    .card {
+      padding: 20px;
+      margin: 10px;
+      border: 1px solid #ccc;
+      cursor: pointer;
+      background: #f9f9f9;
+      border-radius: 8px;
+    }
+
+    #loadingModal {
+      display: none;
+      position: fixed;
+      z-index: 999;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(3px);
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+    }
+
+    .container {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      justify-content: flex-start;
+      flex-direction: column;
+      align-items: flex-end;
+      background-color: #ffffff;
+    }
+
+    /* SVG spinner animation */
+    .spinner {
+      width: 80px;
+      height: 80px;
+      animation: rotate 2s linear infinite;
+    }
+
+    .spinner .path {
+      stroke: #ffffff;
+      stroke-linecap: round;
+      animation: dash 1.5s ease-in-out infinite;
+    }
+
+    .imageContainer {
+      /* flex:1 1 0; */
+      max-width: 100%;
+      max-height: 100%;
+      overflow: hidden;
+      display: flex;
+      justify-content: flex-start;
+      /* Right-aligned image */
+    }
+
+
+    .fullscreen-image {
+      max-width: 100%;
+      max-height: 100%;
+      height: auto;
+      width: auto;
+      display: block;
+      margin: 0 auto;
+      margin-left: 0px;
+      object-fit: contain;
+    }
+
+
+    @keyframes rotate {
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    @keyframes dash {
+      0% {
+        stroke-dasharray: 1, 150;
+        stroke-dashoffset: 0;
+      }
+
+      50% {
+        stroke-dasharray: 90, 150;
+        stroke-dashoffset: -35;
+      }
+
+      100% {
+        stroke-dasharray: 90, 150;
+        stroke-dashoffset: -124;
+      }
+    }
+
+
+
+
+    /* Small screens (e.g. phones) */
+    @media (max-width: 600px) {
+      body {
+        font-size: 14px;
+      }
+    }
+
+    /* Medium screens (e.g. tablets) */
+    @media (min-width: 601px) and (max-width: 1024px) {
+      body {
+        font-size: 16px;
+      }
+    }
+
+    /* Large screens (e.g. desktops) */
+    @media (min-width: 1025px) {
+      body {
+        font-size: 20px;
+      }
+    }
+  </style>
+
+</head>
+
+<body>
+  <div id="loadingModal">
+    <svg class="spinner" viewBox="0 0 50 50">
+      <circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle>
+    </svg>
+    <div style="color: #ffffff; font-weight: 600;font-family: Arial">Please wait, your ROOT lesson is getting ready it
+      may take 2-3 minutes...
+    </div>
+  </div>
+  <audio id="clickSound" src="click.mp3" preload="auto"></audio>
+  <div class="wrapper">
+    <div class="stage">
+      <!-- Header -->
+      <div class="header-top">
+        <img src="rieter_logo.png" alt="Rieter Logo" />
+      </div>
+      <div class="header-bottom">
+        <h1 class="main-title">ROOT – Rieter Online Operator Training</h1>
+        <h2 class="sub-title">Menu Overview of Machines – Rotor Spinning System</h2>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tab-section" id="tabsContainer">
+        <div class="tabs machinesTopTab">
+          <div class="tab sound-tab"><span>General Safety</span></div>
+          <div class="tab sound-tab"><span>Message to the Operator</span></div>
+        </div>
+        <div class="divider"></div>
+        <div class="sub-tabs">
+          <div class="sub-tab left">Fiber Preparation <span style="margin-left: 30%;"> Spinning Preparation </span>
+          </div>
+          <!-- <div class="sub-tab">Spinning Preparation</div> -->
+          <div class="sub-tab right">End Spinning</div>
+        </div>
+      </div>
+
+      <!-- Content -->
+      <div class="content">
+        <div class="section-title" id="sectionTitle">Rotor Spinning System</div>
+
+        <!-- Machine Grid -->
+        <div class="machines" id="machineGrid">
+          <div class="machine eye-tab"><img src="blowroom.png" alt="Blowroom" /><span>Blowroom</span></div>
+          <div class="machine eye-tab"><img src="card.png" alt="Card" /><span>Card</span></div>
+          <div class="machine eye-tab" style="margin-left: 5%;"><img src="drawframe.png" alt="Draw frame" /><span>Draw frame</span></div>
+          <div class="machine eye-tab" style="margin-left: 40%;" id="ringSpinningBtn"><img style="max-width: 244px;" src="rotor.png" alt="Rotor Spinning" /><span>Rotor spinning</span></div>
+        </div>
+
+        <!-- Layer 1: Language -->
+        <div class="layer" id="languageLayer">
+          <div class="language-section">
+            <img src="language_icon.png" alt="Language Icon" class="language-icon" />
+            <div class="languages">
+              <div class="language sound-tab">English</div>
+              <div class="language sound-tab">Arabic</div>
+              <div class="language sound-tab">Chinese</div>
+              <div class="language sound-tab">Hindi</div>
+              <div class="language sound-tab">Spanish</div>
+              <div class="language sound-tab">Tamil</div>
+              <div class="language sound-tab">Turkish</div>
+            </div>
+          </div>
+
+          <div class="image-section">
+            <img src="operator_image.png" alt="Operator Image" />
+          </div>
+
+          <div class="back-btn" id="backBtn1">
+            <img src="arrow_icon.png" alt="Back" />
+          </div>
+        </div>
+
+        <!-- Layer 2: Modules -->
+        <div class="layer" id="moduleLayer">
+          <div class="module-section">
+            <img src="language_icon.png" alt="Module Icon" class="module-icon" />
+            <div class="modules">
+              <div class="module">RIETER LM CLEANING THE MACHINE</div>
+              <div class="module">RIETER LM DISPLAY ELEMENTS</div>
+              <div class="module">RIETER LM FREQUENTLY COMMITTED MISTAKES</div>
+              <div class="module">RIETER LM MACHINE OPERATION</div>
+              <div class="module">RIETER LM OPERATOR CONTRIBUTION IN COST AND QUALITY NT</div>
+              <div class="module">RIETER LM OPTIONAL ATTACHMENTS</div>
+              <div class="module">RIETER LM OVERVIEW OF SPECIAL TOOLS</div>
+              <div class="module">RIETER LM OVERVIEW OF THE MACHINE</div>
+            </div>
+          </div>
+
+          <div class="image-section">
+            <img src="operator_image.png" alt="Operator Image" />
+          </div>
+
+          <div class="back-btn" id="backBtn2">
+            <img src="arrow_icon.png" alt="Back" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="footer">
+        <div>© Rieter 2025</div>
+        <div class="exit-btn">
+          <img src="exit_icon.png" alt="Exit" />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const clickSound = document.getElementById("clickSound");
+    let audioEnabled = false;
+
+    // Unlock audio after first user click
+    window.addEventListener("click", () => {
+      if (!audioEnabled) {
+        clickSound.play().catch(() => { });
+        clickSound.pause();
+        clickSound.currentTime = 0;
+        audioEnabled = true;
+      }
+    });
+
+    // Attach to BOTH tab types
+    document.querySelectorAll(".eye-tab, .sound-tab").forEach(tab => {
+      ["mouseenter", "click"].forEach(evt => {
+        tab.addEventListener(evt, () => {
+          if (audioEnabled) {
+            clickSound.currentTime = 0;
+            clickSound.play();
+          }
+        });
+      });
+    });
+
+    let selectedMachine = null;
+    let selectionSection = null
+    let selectedLanguage = null;
+    (function () {
+      const STAGE_W = 1920, STAGE_H = 1080;
+      const stage = document.querySelector('.stage'), wrapper = document.querySelector('.wrapper');
+      function resizeAndCenter() {
+        const scale = Math.min(window.innerWidth / STAGE_W, window.innerHeight / STAGE_H);
+        stage.style.transform = `scale(${scale})`;
+        stage.style.transformOrigin = 'top left';
+        const x = (window.innerWidth - STAGE_W * scale) / 2;
+        const y = (window.innerHeight - STAGE_H * scale) / 2;
+        wrapper.style.left = `${Math.max(0, x)}px`;
+        wrapper.style.top = `${Math.max(0, y)}px`;
+      }
+      window.addEventListener('resize', resizeAndCenter);
+      resizeAndCenter();
+    })();
+
+    // interactivity
+    const ringSpinningBtn = document.getElementById('ringSpinningBtn');
+    const machineGrid = document.getElementById('machineGrid');
+    const tabsContainer = document.getElementById('tabsContainer');
+    const sectionTitle = document.getElementById('sectionTitle');
+    const languageLayer = document.getElementById('languageLayer');
+    const moduleLayer = document.getElementById('moduleLayer');
+    const backBtn1 = document.getElementById('backBtn1');
+    const backBtn2 = document.getElementById('backBtn2');
+
+
+
+    // ===== Basic Elements =====
+
+    const modulesContainer = document.querySelector('#moduleLayer .modules');
+
+
+    // ===== Course Data (inline definition) =====
+    const modulesData = {
+      "Rotor spinning": [
+        { title: "RIETER LM CLEANING THE MACHINE", folder: "RIETER LM CLEANING THE MACHINE" },
+        { title: "RIETER LM DISPLAY ELEMENTS", folder: "RIETER LM DISPLAY ELEMENTS" },
+        { title: "RIETER LM FREQUENTLY COMMITTED MISTAKES", folder: "RIETER LM FREQUENTLY COMMITTED MISTAKES" },
+        { title: "RIETER LM MACHINE OPERATION", folder: "RIETER LM MACHINE OPERATION" },
+        { title: "RIETER LM OPERATOR CONTRIBUTION IN COST AND QUALITY NT", folder: "RIETER LM OPERATOR CONTRIBUTION IN COST AND QUALITY NT" },
+        { title: "RIETER LM OPTIONAL ATTACHMENTS", folder: "RIETER LM OPTIONAL ATTACHMENTS" },
+        { title: "RIETER LM OVERVIEW OF SPECIAL TOOLS", folder: "RIETER LM OVERVIEW OF SPECIAL TOOLS" },
+        { title: "RIETER LM OVERVIEW OF THE MACHINE", folder: "RIETER LM OVERVIEW OF THE MACHINE" }
+      ],
+      "Draw frame": [
+        { title: "WINDING MACHINE LM 01", folder: "WINDING MACHINE LM 01" },
+        { title: "WINDING MACHINE LM 02", folder: "WINDING MACHINE LM 02" },
+        { title: "WINDING MACHINE LM 03", folder: "WINDING MACHINE LM 03" },
+        { title: "WINDING MACHINE LM 04", folder: "WINDING MACHINE LM 04" },
+
+      ],
+      "Blowroom": [
+        { title: "RIETER LM OVERVIEW OF THE MACHINE", folder: "blowroom_overview.html" },
+        { title: "RIETER LM MACHINE OPERATION", folder: "blowroom_operation.html" },
+        { title: "RIETER LM CLEANING THE MACHINE", folder: "blowroom_cleaning.html" }
+      ],
+      "Card": [
+        { title: "RIETER LM MACHINE OPERATION", folder: "card_operation.html" },
+        { title: "RIETER LM DISPLAY ELEMENTS", folder: "card_display.html" }
+      ],
+      "General Safety": [
+        { title: "RIETER LM GENERAL SAFETY", folder: "RIETER LM GENERAL SAFETY" },
+      ]
+      // Add others similarly if needed
+    };
+
+    /*top tab data handle like General Safety*/
+    document.querySelectorAll('.machinesTopTab').forEach(machine => {
+      machine.addEventListener('click', () => {
+        selectedMachine = machine.querySelector('span').textContent.trim();
+        console.log("Selected Machine:", selectedMachine);
+        // Hide main menu
+        machineGrid.classList.add('hidden');
+        tabsContainer.classList.add('hidden');
+        sectionTitle.classList.add('hidden');
+
+        // Show language selection
+        languageLayer.classList.add('active');
+      });
+    });
+
+
+
+    // ===== MACHINE CLICK → Show Language Layer =====
+    document.querySelectorAll('.machine').forEach(machine => {
+      machine.addEventListener('click', () => {
+        selectedMachine = machine.querySelector('span').textContent.trim();
+        console.log("Selected Machine:", selectedMachine);
+
+        // Hide main menu
+        machineGrid.classList.add('hidden');
+        tabsContainer.classList.add('hidden');
+        sectionTitle.classList.add('hidden');
+
+        // Show language selection
+        languageLayer.classList.add('active');
+      });
+    });
+
+    // ===== LANGUAGE CLICK → Show Dynamic Module Layer =====
+    document.querySelectorAll('.language').forEach((langBtn) => {
+
+      langBtn.addEventListener('click', () => {
+        selectedLanguage = langBtn.textContent.trim();
+        console.log("Selected Language:", selectedLanguage, "for", selectedMachine);
+
+        // Hide language layer
+        languageLayer.classList.remove('active');
+
+        // Clear any old module list
+        modulesContainer.innerHTML = '';
+
+        // Get courses for selected machine
+        const modules = modulesData[selectedMachine] || [];
+
+        if (modules.length === 0) {
+          const msg = document.createElement('div');
+          msg.textContent = "No courses available for this topic.";
+          msg.style.color = "#999";
+          modulesContainer.appendChild(msg);
+        } else {
+          modules.forEach(mod => {
+            const div = document.createElement('div');
+            div.className = 'module';
+            div.textContent = mod.title;
+
+            // Open corresponding HTML folder
+            div.addEventListener('click', async () => {
+              try {
+                const modal = document.getElementById('loadingModal');
+                modal.style.display = 'flex'; // Show modal
+                await window.scormAPI.decryptScorm(mod.folder);
+                modal.style.display = 'none'; // hide modal
+
+              }
+              catch (err) {
+                const modal = document.getElementById('loadingModal');
+                modal.style.display = 'none'; // hide modal
+              }
+            });
+
+
+            modulesContainer.appendChild(div);
+          });
+        }
+
+        // Show module layer
+        moduleLayer.classList.add('active');
+      })
+
+    });
+
+    // ===== BACK BUTTONS =====
+
+    // From module layer → go back to language selection
+    backBtn2.addEventListener('click', () => {
+      moduleLayer.classList.remove('active');
+      languageLayer.classList.add('active');
+    });
+
+    // From language selection → go back to main menu
+    backBtn1.addEventListener('click', () => {
+      languageLayer.classList.remove('active');
+      machineGrid.classList.remove('hidden');
+      tabsContainer.classList.remove('hidden');
+      sectionTitle.classList.remove('hidden');
+    });
+  </script>
+
+</body>
+
+</html>
